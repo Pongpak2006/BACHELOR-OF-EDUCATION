@@ -161,9 +161,9 @@
             
             <form onsubmit="event.preventDefault(); login('admin');" class="space-y-3 md:space-y-4 text-left w-full">
                 <div class="relative">
-                    <i class="fa-solid fa-user-tie absolute left-4 md:left-5 top-1/2 -translate-y-1/2 text-slate-400 text-sm md:text-base"></i>
-                    <input type="email" id="adminUsername" class="w-full pl-10 md:pl-12 pr-4 py-3 md:py-3.5 bg-slate-50 border border-slate-200 rounded-xl md:rounded-2xl outline-none focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-50 transition text-sm md:text-base font-medium" placeholder="อีเมลผู้ดูแล (Admin Email)">
-                </div>
+    <i class="fa-solid fa-user-tie absolute left-4 md:left-5 top-1/2 -translate-y-1/2 text-slate-400 text-sm md:text-base"></i>
+    <input type="text" id="adminUsername" class="w-full pl-10 md:pl-12 pr-4 py-3 md:py-3.5 bg-slate-50 border border-slate-200 rounded-xl md:rounded-2xl outline-none focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-50 transition text-sm md:text-base font-medium" placeholder="ชื่อผู้ใช้งาน (Admin Username)">
+</div>
                 <div class="relative">
                     <i class="fa-solid fa-key absolute left-4 md:left-5 top-1/2 -translate-y-1/2 text-slate-400 text-sm md:text-base"></i>
                     <input type="password" id="adminPassword" class="w-full pl-10 md:pl-12 pr-10 py-3 md:py-3.5 bg-slate-50 border border-slate-200 rounded-xl md:rounded-2xl outline-none focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-50 transition text-sm md:text-base font-medium" placeholder="รหัสผ่าน">
@@ -712,66 +712,68 @@ const db = firebase.firestore();
         }
 
        function login(loginType) {
-            Swal.fire({ title: appLang === 'en' ? 'Logging in...' : 'กำลังเข้าสู่ระบบ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-            
-            let u = loginType === 'admin' ? document.getElementById('adminUsername').value : document.getElementById('username').value;
-            let p = loginType === 'admin' ? document.getElementById('adminPassword').value : document.getElementById('password').value;
+    Swal.fire({ title: appLang === 'en' ? 'Logging in...' : 'กำลังเข้าสู่ระบบ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    
+    let u = loginType === 'admin' ? document.getElementById('adminUsername').value.trim() : document.getElementById('username').value.trim();
+    let p = loginType === 'admin' ? document.getElementById('adminPassword').value : document.getElementById('password').value;
 
-            if(!u || !p) {
-                Swal.close();
-                return Swal.fire(appLang === 'en' ? 'Warning' : 'เตือน', appLang === 'en' ? 'Please fill in all fields' : 'กรุณากรอกข้อมูลให้ครบ', 'warning');
-            }
+    if(!u || !p) {
+        Swal.close();
+        return Swal.fire(appLang === 'en' ? 'Warning' : 'เตือน', appLang === 'en' ? 'Please fill in all fields' : 'กรุณากรอกข้อมูลให้ครบ', 'warning');
+    }
 
-            // 💡 ทริคสำคัญ: ถ้าเป็นแอดมิน ให้ใช้อีเมลจริงที่กรอกมา | ถ้าเป็นนักศึกษา ให้แอบเติม @rumail.ru.ac.th
-            let loginEmail = loginType === 'admin' ? u : `${u}@rumail.ru.ac.th`;
-
-            // ส่งให้ป้อมยาม Firebase Auth ตรวจสอบ
-            firebase.auth().signInWithEmailAndPassword(loginEmail, p)
-            .then((userCredential) => {
-                
-                // 1. ถ้าเป็น "แอดมิน" ป้อมยามให้ผ่านแล้ว เข้าหน้าแอดมินได้เลยทันที!
-                if (loginType === 'admin') {
-                    Swal.close();
-                    document.getElementById('loginSection').style.display = 'none';
-                    document.getElementById('adminSection').style.display = 'block';
-                    loadAdmin(); 
-                    return; // จบการทำงาน
-                }
-
-                // 2. ถ้าเป็น "นักศึกษา" ให้ไปดึงชื่อและประวัติจากตู้เอกสาร (Firestore) ต่อ
-                return db.collection("Users").doc(u).get().then((doc) => {
-                    Swal.close();
-                    if (doc.exists) {
-                        let userData = doc.data();
-                        
-                        currentUser = userData; 
-                        currentUser.id = u; 
-                        currentUser.studentId = userData.studentId || u; 
-                        
-                        document.getElementById('loginSection').style.display = 'none';
-                        document.getElementById('studentSection').style.display = 'block';
-                        document.getElementById('headerName').innerText = currentUser.name || 'ไม่ระบุชื่อ';
-                        document.getElementById('profileName').innerText = currentUser.name || 'ไม่ระบุชื่อ';
-                        document.getElementById('profileId').innerText = appLang === 'en' ? `ID: ${currentUser.studentId} | Year ${currentUser.year}` : `รหัส: ${currentUser.studentId} | ชั้นปีที่ ${currentUser.year}`;
-                        document.getElementById('profileEmail').innerText = currentUser.email || '-';
-                        document.getElementById('greetingText').innerText = getGreeting();
-                        
-                        loadCourses();
-                    } else {
-                        Swal.fire('ข้อผิดพลาด', 'ไม่พบประวัตินักศึกษาในระบบ', 'error');
-                    }
-                });
-            })
-            .catch((error) => {
-                Swal.close();
-                console.error("Login Error:", error);
-                let errorMsg = 'เข้าสู่ระบบล้มเหลว';
-                if(error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-                    errorMsg = 'รหัสผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง';
-                }
-                Swal.fire('ข้อผิดพลาด', errorMsg, 'error');
-            });
+    // 👑 1. ส่วนของแอดมิน: ล็อกอินแบบพิมพ์แค่ admin (ไม่ต้องยุ่งกับ Firebase)
+    if (loginType === 'admin') {
+        // 🌟 ตั้งค่า Username และ Password สำหรับแอดมินตรงนี้ได้เลยครับ! 🌟
+        if (u === 'admin' && p === 'Ru2026') { 
+            Swal.close();
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('adminSection').style.display = 'block';
+            loadAdmin(); 
+            return; // จบการทำงาน ไม่ต้องไปเช็ก Firebase ให้เสียเวลา
+        } else {
+            Swal.close();
+            return Swal.fire('เข้าไม่ได้', 'ชื่อผู้ใช้งานหรือรหัสผ่านแอดมินไม่ถูกต้อง', 'error');
         }
+    }
+
+    // 🎓 2. ส่วนของนักศึกษา: แอบต่อท้ายอีเมลแล้วส่งไปให้ Firebase ตรวจ
+    let loginEmail = `${u}@rumail.ru.ac.th`;
+
+    firebase.auth().signInWithEmailAndPassword(loginEmail, p)
+    .then((userCredential) => {
+        return db.collection("Users").doc(u).get().then((doc) => {
+            Swal.close();
+            if (doc.exists) {
+                let userData = doc.data();
+                currentUser = userData; 
+                currentUser.id = u; 
+                currentUser.studentId = userData.studentId || u; 
+                
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('studentSection').style.display = 'block';
+                document.getElementById('headerName').innerText = currentUser.name || 'ไม่ระบุชื่อ';
+                document.getElementById('profileName').innerText = currentUser.name || 'ไม่ระบุชื่อ';
+                document.getElementById('profileId').innerText = appLang === 'en' ? `ID: ${currentUser.studentId} | Year ${currentUser.year}` : `รหัส: ${currentUser.studentId} | ชั้นปีที่ ${currentUser.year}`;
+                document.getElementById('profileEmail').innerText = currentUser.email || '-';
+                document.getElementById('greetingText').innerText = getGreeting();
+                
+                loadCourses();
+            } else {
+                Swal.fire('ข้อผิดพลาด', 'ไม่พบประวัตินักศึกษาในระบบ', 'error');
+            }
+        });
+    })
+    .catch((error) => {
+        Swal.close();
+        console.error("Login Error:", error);
+        let errorMsg = 'เข้าสู่ระบบล้มเหลว';
+        if(error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+            errorMsg = 'รหัสผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง';
+        }
+        Swal.fire('ข้อผิดพลาด', errorMsg, 'error');
+    });
+}
 
         // ==========================================
 // 1. ระบบสมัครสมาชิก (Popup) - รองรับเลือกปีหลักสูตร
