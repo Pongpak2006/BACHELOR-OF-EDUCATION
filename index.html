@@ -312,6 +312,30 @@
             </div>
         </div>
 
+        <div class="bg-white p-6 md:p-8 rounded-[2rem] shadow-[0_8px_30px_rgba(0,0,0,0.03)] border border-slate-100 mb-8 flex flex-col md:flex-row gap-6 items-center">
+            <div class="w-16 h-16 md:w-20 md:h-20 rounded-[1.5rem] bg-gradient-to-br from-indigo-50 to-blue-50 text-indigo-500 flex items-center justify-center text-3xl md:text-4xl flex-shrink-0 shadow-sm border border-indigo-100">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </div>
+            <div class="flex-1 text-left w-full">
+                <h3 class="text-base md:text-lg font-bold text-slate-800 mb-1"><span class="lang-txt" data-th="ระบบจำลองเกรดอนาคต (GPAX Predictor)" data-en="GPAX Predictor">ระบบจำลองเกรดอนาคต (GPAX Predictor)</span> <span class="bg-indigo-100 text-indigo-600 text-[9px] px-2 py-0.5 rounded-full font-bold ml-2 uppercase tracking-wider">New</span></h3>
+                <p class="text-[11px] md:text-xs text-slate-500 mb-4 lang-txt" data-th="ลองระบุ 'หน่วยกิต' และ 'เกรดเฉลี่ย' ที่คาดว่าจะได้ในเทอมหน้า เพื่อดูว่าคุณจะคว้าเกียรตินิยมได้หรือไม่!" data-en="Enter your expected credits and GPA for next semester to see your honors chances!">ลองระบุ 'หน่วยกิต' และ 'เกรดเฉลี่ย' ที่คาดว่าจะได้ในเทอมหน้า เพื่อดูว่าคุณจะคว้าเกียรตินิยมได้หรือไม่!</p>
+                
+                <div class="flex flex-col md:flex-row gap-3">
+                    <div class="relative flex-1">
+                        <i class="fa-solid fa-book-open absolute left-4 top-3.5 text-slate-400 text-sm"></i>
+                        <input type="number" id="predictCredits" class="lang-placeholder w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50 transition text-sm text-slate-700 placeholder-slate-400 font-medium" placeholder="หน่วยกิตที่ลงทะเบียน (เช่น 18)" data-th="หน่วยกิตที่ลงทะเบียน (เช่น 18)" data-en="Expected Credits (e.g. 18)">
+                    </div>
+                    <div class="relative flex-1">
+                        <i class="fa-solid fa-star absolute left-4 top-3.5 text-slate-400 text-sm"></i>
+                        <input type="number" id="predictGrade" step="0.01" class="lang-placeholder w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50 transition text-sm text-slate-700 placeholder-slate-400 font-medium" placeholder="เกรดที่คาดหวัง (เช่น 3.50)" data-th="เกรดที่คาดหวัง (เช่น 3.50)" data-en="Expected GPA (e.g. 3.50)">
+                    </div>
+                    <button class="bg-indigo-50 text-indigo-600 hover:bg-indigo-500 hover:text-white border border-indigo-100 font-bold py-3 px-6 rounded-xl transition shadow-sm active:scale-95 text-sm whitespace-nowrap flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-calculator"></i> <span class="lang-txt" data-th="คำนวณ" data-en="Calculate">คำนวณ</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
         <div class="flex border-b border-slate-200 mb-8 w-full max-w-2xl mx-auto">
             <button onclick="switchTab('structureTab')" id="btn-structureTab" class="flex-1 text-theme font-bold py-3.5 border-b-[3px] border-theme transition text-sm md:text-base lang-txt" data-th="โครงสร้างรายวิชา" data-en="Course Structure">โครงสร้างรายวิชา</button>
             <button onclick="switchTab('passedTab')" id="btn-passedTab" class="flex-1 text-slate-400 font-medium py-3.5 border-b-[3px] border-transparent hover-text-theme transition text-sm md:text-base lang-txt" data-th="ประวัติการเรียน" data-en="Academic Record">ประวัติการเรียน</button>
