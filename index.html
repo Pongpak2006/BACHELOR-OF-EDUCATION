@@ -17,6 +17,8 @@
     <!-- เรียกใช้งาน Firebase (เอาไว้วางในหมวด head) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <!-- วางบรรทัดนี้เพิ่มเข้าไป 👇 -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap');
         
@@ -676,79 +678,67 @@ const db = firebase.firestore();
         }
 
        function login(loginType) {
-    // 1. สั่งให้ตัวหมุน Loading ทำงานทันทีที่กดปุ่ม เพื่อลดความรู้สึกหน่วง
-    Swal.fire({
-        title: appLang === 'en' ? 'Logging in...' : 'กำลังเข้าสู่ระบบ...',
-        allowOutsideClick: false,
-        showConfirmButton: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
+            Swal.fire({ title: appLang === 'en' ? 'Logging in...' : 'กำลังเข้าสู่ระบบ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            
+            let u = loginType === 'admin' ? document.getElementById('adminUsername').value : document.getElementById('username').value;
+            let p = loginType === 'admin' ? document.getElementById('adminPassword').value : document.getElementById('password').value;
 
-    // 2. ดึงค่าจากช่อง Input
-    let u = loginType === 'admin' ? document.getElementById('adminUsername').value : document.getElementById('username').value;
-    let p = loginType === 'admin' ? document.getElementById('adminPassword').value : document.getElementById('password').value;
+            if(!u || !p) {
+                Swal.close();
+                return Swal.fire(appLang === 'en' ? 'Warning' : 'เตือน', appLang === 'en' ? 'Please fill in all fields' : 'กรุณากรอกข้อมูลให้ครบ', 'warning');
+            }
 
-    if(!u || !p) {
-        Swal.close();
-        Swal.fire(appLang === 'en' ? 'Warning' : 'เตือน', appLang === 'en' ? 'Please fill in all fields' : 'กรุณากรอกข้อมูลให้ครบ', 'warning');
-        return;
-    }
+            // 💡 ทริคสำคัญ: ถ้าเป็นแอดมิน ให้ใช้อีเมลจริงที่กรอกมา | ถ้าเป็นนักศึกษา ให้แอบเติม @rumail.ru.ac.th
+            let loginEmail = loginType === 'admin' ? u : `${u}@rumail.ru.ac.th`;
 
-    // 3. เริ่มดึงข้อมูลจาก Firebase
-    db.collection("Users").doc(u).get().then((doc) => {
-        Swal.close(); // ปิดตัวหมุนเมื่อได้รับข้อมูลตอบกลับ
-        
-        if (doc.exists) {
-            let userData = doc.data(); 
-            if (userData.password === p) {
-                let role = userData.role || 'student';
+            // ส่งให้ป้อมยาม Firebase Auth ตรวจสอบ
+            firebase.auth().signInWithEmailAndPassword(loginEmail, p)
+            .then((userCredential) => {
                 
-                // ตรวจสอบสิทธิ์ Admin/Student
-                if(role === 'admin' && loginType !== 'admin') {
-                    return Swal.fire('เตือน', 'กรุณาเข้าสู่ระบบผ่านปุ่มแอดมิน', 'warning');
-                }
-                if(role === 'student' && loginType === 'admin') {
-                    return Swal.fire('เตือน', 'บัญชีนี้ไม่มีสิทธิ์แอดมิน', 'error');
-                }
-
-                // ซ่อนหน้า Login
-                document.getElementById('loginSection').style.display = 'none';
-                
-                if(role === 'admin') {
+                // 1. ถ้าเป็น "แอดมิน" ป้อมยามให้ผ่านแล้ว เข้าหน้าแอดมินได้เลยทันที!
+                if (loginType === 'admin') {
+                    Swal.close();
+                    document.getElementById('loginSection').style.display = 'none';
                     document.getElementById('adminSection').style.display = 'block';
                     loadAdmin(); 
-                } else {
-                    // ตั้งค่าข้อมูลผู้ใช้ปัจจุบัน
-                    currentUser = userData; 
-                    currentUser.id = u; 
-                    currentUser.studentId = userData.studentId || u; 
-                    
-                    // แสดงหน้า Dashboard นักศึกษา
-                    document.getElementById('studentSection').style.display = 'block';
-                    document.getElementById('headerName').innerText = currentUser.name || 'ไม่ระบุชื่อ';
-                    document.getElementById('profileName').innerText = currentUser.name || 'ไม่ระบุชื่อ';
-                    document.getElementById('profileId').innerText = appLang === 'en' ? `ID: ${currentUser.studentId} | Year ${currentUser.year}` : `รหัส: ${currentUser.studentId} | ชั้นปีที่ ${currentUser.year}`;
-                    document.getElementById('profileEmail').innerText = currentUser.email || '-';
-                    document.getElementById('greetingText').innerText = getGreeting();
-                    
-                    // โหลดวิชาเรียน
-                    loadCourses();
+                    return; // จบการทำงาน
                 }
-            } else { 
-                Swal.fire('ข้อผิดพลาด', 'รหัสผ่านไม่ถูกต้อง', 'error'); 
-            }
-        } else { 
-            Swal.fire('ข้อผิดพลาด', 'ไม่พบรหัสผู้ใช้งานนี้ในระบบ', 'error'); 
-        }
-    }).catch((error) => {
-        Swal.close();
-        console.error("Login Error:", error);
-        Swal.fire('ข้อผิดพลาด', 'ระบบเชื่อมต่อฐานข้อมูลล้มเหลว', 'error');
-    });
-}
 
+                // 2. ถ้าเป็น "นักศึกษา" ให้ไปดึงชื่อและประวัติจากตู้เอกสาร (Firestore) ต่อ
+                return db.collection("Users").doc(u).get().then((doc) => {
+                    Swal.close();
+                    if (doc.exists) {
+                        let userData = doc.data();
+                        
+                        currentUser = userData; 
+                        currentUser.id = u; 
+                        currentUser.studentId = userData.studentId || u; 
+                        
+                        document.getElementById('loginSection').style.display = 'none';
+                        document.getElementById('studentSection').style.display = 'block';
+                        document.getElementById('headerName').innerText = currentUser.name || 'ไม่ระบุชื่อ';
+                        document.getElementById('profileName').innerText = currentUser.name || 'ไม่ระบุชื่อ';
+                        document.getElementById('profileId').innerText = appLang === 'en' ? `ID: ${currentUser.studentId} | Year ${currentUser.year}` : `รหัส: ${currentUser.studentId} | ชั้นปีที่ ${currentUser.year}`;
+                        document.getElementById('profileEmail').innerText = currentUser.email || '-';
+                        document.getElementById('greetingText').innerText = getGreeting();
+                        
+                        loadCourses();
+                    } else {
+                        Swal.fire('ข้อผิดพลาด', 'ไม่พบประวัตินักศึกษาในระบบ', 'error');
+                    }
+                });
+            })
+            .catch((error) => {
+                Swal.close();
+                console.error("Login Error:", error);
+                let errorMsg = 'เข้าสู่ระบบล้มเหลว';
+                if(error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    errorMsg = 'รหัสผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง';
+                }
+                Swal.fire('ข้อผิดพลาด', errorMsg, 'error');
+            });
+        }
+        
         function logout(s) {
             document.getElementById(s).style.display = 'none';
             document.getElementById('loginSection').style.display = 'flex';
@@ -1253,13 +1243,37 @@ function calculateStatus(totalCr) {
             
             Swal.fire({ title: appLang === 'en' ? 'Saving...' : 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
             
-            db.collection("Users").doc(data.username).set(data).then(() => {
-                Swal.fire(appLang === 'en' ? 'Success' : 'สำเร็จ', appLang === 'en' ? 'User Added' : 'เพิ่มสมาชิกเรียบร้อย', 'success');
+            // 💡 ทริค: สร้างอีเมลจำลองสำหรับรหัสนักศึกษาใหม่ เพื่อไปฝากป้อมยาม
+            let dummyEmail = `${data.username}@rumail.ru.ac.th`;
+
+            // ใช้แอปจำลอง (Secondary App) เพื่อสร้างบัญชี โดยไม่ทำให้แอดมินเด้งหลุดจากระบบ
+            if (!firebase.apps.length || !firebase.apps.find(app => app.name === 'SecondaryApp')) {
+                firebase.initializeApp(firebaseConfig, 'SecondaryApp');
+            }
+            const secondaryAuth = firebase.app('SecondaryApp').auth();
+
+            secondaryAuth.createUserWithEmailAndPassword(dummyEmail, data.password)
+            .then((userCredential) => {
+                // สร้างรหัสผ่านที่ป้อมยามสำเร็จ! (ลบรหัสผ่านทิ้ง ไม่เซฟลงตู้เอกสารเพื่อความปลอดภัย 100%)
+                delete data.password; 
+                
+                return db.collection("Users").doc(data.username).set(data);
+            })
+            .then(() => {
+                secondaryAuth.signOut(); // ปิดแอปจำลอง
+                Swal.fire(appLang === 'en' ? 'Success' : 'สำเร็จ', appLang === 'en' ? 'User Added' : 'เพิ่มนักศึกษาและสร้างรหัสผ่านเรียบร้อย', 'success');
+                
+                // ล้างข้อมูลในกล่องข้อความ
                 document.getElementById('newUsername').value = ''; document.getElementById('newPassword').value = '';
                 document.getElementById('newStudentId').value = ''; document.getElementById('newName').value = '';
                 document.getElementById('newEmail').value = ''; document.getElementById('newYear').value = '';
                 loadAdmin();
-            }).catch(err => Swal.fire(appLang === 'en' ? 'Error' : 'ผิดพลาด', err.message, 'error'));
+            })
+            .catch(err => {
+                secondaryAuth.signOut();
+                console.error(err);
+                Swal.fire(appLang === 'en' ? 'Error' : 'ผิดพลาด', err.message, 'error');
+            });
         }
     </script>
 </body>
