@@ -10,7 +10,7 @@
 <meta property="og:image:height" content="512">
 <meta property="og:image:type" content="image/png">
 <link rel="apple-touch-icon" href="https://i.postimg.cc/hvPVnv1D/d-sin-th-y-ngmi-di-t-ngch-x.png">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no, viewport-fit=cover">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -104,8 +104,8 @@
             </div>
         </div>
 
-        <div id="studentLoginBox" class="relative bg-white/80 backdrop-blur-2xl p-6 md:p-12 rounded-[2rem] md:rounded-[2.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.04)] w-[92vw] max-w-[450px] md:max-w-[500px] lg:max-w-[550px] border border-white z-10 text-center transition-all mt-16 md:mt-8 flex flex-col justify-center">
-            
+<div id="studentLoginBox" class="relative bg-white/80 backdrop-blur-2xl p-6 md:p-12 rounded-[2rem] md:rounded-[2.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.04)] w-full w-[calc(100%-2rem)] sm:max-w-[420px] md:max-w-[480px] lg:max-w-[500px] border border-white z-10 text-center transition-all mt-12 md:mt-8 flex flex-col justify-center">
+    
             <div class="w-16 h-16 md:w-20 md:h-20 gradient-theme rounded-[1rem] md:rounded-[1.5rem] shadow-theme flex items-center justify-center mx-auto mb-4 md:mb-6 animate-float">
                 <i class="fa-solid fa-graduation-cap text-3xl md:text-4xl text-white"></i>
             </div>
@@ -151,7 +151,7 @@
             <p class="mt-6 md:mt-8 text-[9px] text-slate-400 font-light tracking-widest uppercase opacity-80">&copy; 2026 จัดทำโดย นายพงศ์ภัค โชครักษ์</p>
         </div>
 
-<div id="adminLoginBox" class="hidden relative bg-white/80 backdrop-blur-2xl p-6 md:p-12 rounded-[2rem] md:rounded-[2.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.04)] w-[92vw] max-w-[450px] md:max-w-[500px] lg:max-w-[550px] border border-white z-10 text-center transition-all mt-16 md:mt-8 flex flex-col justify-center">
+<div id="adminLoginBox" class="hidden relative bg-white/80 backdrop-blur-2xl p-6 md:p-12 rounded-[2rem] md:rounded-[2.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.04)] w-full w-[calc(100%-2rem)] sm:max-w-[420px] md:max-w-[480px] lg:max-w-[500px] border border-white z-10 text-center transition-all mt-12 md:mt-8 flex flex-col justify-center">
     
             <div class="w-16 h-16 md:w-20 md:h-20 admin-gradient-theme rounded-[1rem] md:rounded-[1.5rem] shadow-lg shadow-green-200/50 flex items-center justify-center mx-auto mb-4 md:mb-6 animate-float">
                 <i class="fa-solid fa-server text-3xl md:text-4xl text-white"></i>
@@ -430,7 +430,7 @@ const db = firebase.firestore();
         const TOTAL_CREDITS = 141;
         
         // 🚀 รายวิชาครบถ้วนตามลิสต์ของคุณ
-        const BASE_COURSES = [
+        let BASE_COURSES = [
             { code: 'RAM1111', name: 'ภาษาอังกฤษในชีวิตประจำวัน', credit: 3, category: 'ศึกษาทั่วไป (ภาษาอังกฤษ บังคับ)' },
             { code: 'RAM1101', name: 'ทักษะการใช้ภาษาไทย', credit: 3, category: 'ศึกษาทั่วไป (ภาษาไทย เลือก 1 วิชา)' },
             { code: 'RAM1103', name: 'ภาษาไทยเพื่อการสื่อสารในการทำงาน', credit: 3, category: 'ศึกษาทั่วไป (ภาษาไทย เลือก 1 วิชา)' },
@@ -1005,29 +1005,42 @@ function showStudentDashboard() {
             });
         }
 
-        // 🚀 ดึงข้อมูลเกรดจาก Firebase (อัปเกรดให้รองรับหลักสูตรหลายปี)
+        // 🚀 ดึงข้อมูลหลักสูตรและเกรดจาก Firebase (Dynamic 100%)
         async function loadCourses() {
             if (!currentUser.id) return;
             try {
+                // 1. เช็กว่าเด็กคนนี้ใช้หลักสูตรปีอะไร (ถ้าคนเก่าไม่มีข้อมูล ให้ปัดเป็น 2567)
+                let userYear = currentUser.curriculumYear || "2567";
+
+                // 2. ไปหยิบ "เล่มหลักสูตร" จากตู้ Curriculums ตามปีของเด็กคนนั้น
+                let curDoc = await db.collection("Curriculums").doc(userYear).get();
+
+                if (curDoc.exists && curDoc.data().courses) {
+                    // 🌟 นำข้อมูลรายวิชาจากฐานข้อมูล มาทับตัวแปรเดิมในระบบ 🌟
+                    BASE_COURSES = curDoc.data().courses;
+                } else {
+                    console.warn("ไม่พบเล่มหลักสูตรปี " + userYear + " ระบบจะใช้ค่าเริ่มต้นแทน");
+                    // ถ้าแอดมินยังไม่ได้สร้างแฟ้มปีนั้น มันจะใช้ข้อมูลเดิมที่ฝังในโค้ดมาเป็นเบาะรองรับไม่ให้เว็บพังครับ
+                }
+
+                // 3. ดึงเกรดของนักศึกษาคนนี้จากตู้ StudentGrades
                 const gradeSnap = await db.collection("StudentGrades").where("studentId", "==", currentUser.id).get();
                 let studentGrades = {};
                 gradeSnap.forEach(doc => {
                     studentGrades[doc.data().courseCode] = doc.data();
                 });
 
-                // 🌟 แก้ตรงนี้: ใช้ getActiveCourses() แทน BASE_COURSES
-                let activeCourses = getActiveCourses(); 
-
-                let fullData = activeCourses.map(course => {
+                // 4. เอาวิชาในหลักสูตร มาชนกับเกรดที่เด็กได้
+                let fullData = BASE_COURSES.map(course => {
                     return {
                         ...course,
                         grade: studentGrades[course.code] ? studentGrades[course.code].grade : '-'
                     };
                 });
 
+                // 5. ดักจับ "วิชาเสรี" (วิชาที่เด็กมีเกรด แต่ไม่มีรายชื่ออยู่ในเล่มหลักสูตร)
                 for (let code in studentGrades) {
-                    // 🌟 แก้ตรงนี้: ใช้ activeCourses แทน BASE_COURSES
-                    if (!activeCourses.find(bc => bc.code === code)) {
+                    if (!BASE_COURSES.find(bc => bc.code === code)) {
                         fullData.push({
                             code: code,
                             name: studentGrades[code].courseName || 'วิชาเสรี',
@@ -1037,9 +1050,12 @@ function showStudentDashboard() {
                         });
                     }
                 }
+                
+                // ส่งข้อมูลทั้งหมดไปวาดหน้าจอ
                 renderCourses(fullData);
             } catch (error) {
-                console.error("Error fetching grades:", error);
+                console.error("Error fetching data:", error);
+                Swal.fire('ข้อผิดพลาด', 'ไม่สามารถดึงข้อมูลหลักสูตรและผลการเรียนได้', 'error');
             }
         }
 
