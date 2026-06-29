@@ -189,6 +189,9 @@
                 <button onclick="logout('adminSection')" class="bg-white/20 hover:bg-red-500 hover:border-red-500 border border-white/30 text-white px-5 py-2.5 md:py-3 rounded-[1rem] text-sm md:text-base font-semibold transition shadow-sm flex items-center justify-center gap-2 active:scale-95 w-full md:w-auto">
                     <i class="fa-solid fa-power-off"></i> <span class="lang-txt" data-th="ออกจากระบบ" data-en="Logout">ออกจากระบบ</span>
                 </button>
+                <button onclick="syncCoursesToDB()" class="bg-indigo-500 hover:bg-indigo-600 border border-indigo-600 text-white px-5 py-2.5 md:py-3 rounded-[1rem] text-sm md:text-base font-semibold transition shadow-sm flex items-center justify-center gap-2 active:scale-95 w-full md:w-auto">
+    <i class="fa-solid fa-cloud-arrow-up"></i> <span class="lang-txt" data-th="ซิงค์วิชาเข้าฐานข้อมูล" data-en="Sync Courses">ซิงค์วิชาเข้าฐานข้อมูล</span>
+</button>
             </div>
         </div>
         
@@ -1501,6 +1504,41 @@ function calculateStatus(totalCr) {
                 Swal.fire(appLang === 'en' ? 'Error' : 'ผิดพลาด', err.message, 'error');
             });
         }
+        // ==========================================
+// ฟังก์ชันลับสำหรับแอดมิน: โยนวิชาทั้งหมดเข้า Firebase แบบอัตโนมัติ
+// ==========================================
+function syncCoursesToDB() {
+    Swal.fire({
+        title: 'ยืนยันการซิงค์ข้อมูล?',
+        text: 'ระบบจะนำวิชาใน BASE_COURSES อัปโหลดเข้าสู่ปี 2567, 2568 และ 2569',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'ใช่, อัปโหลดเลย!',
+        cancelButtonText: 'ยกเลิก'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({ title: 'กำลังอัปโหลด...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            
+            let batch = db.batch();
+            
+            // เตรียมข้อมูลอัปโหลด
+            let curRef67 = db.collection("Curriculums").doc("2567");
+            let curRef68 = db.collection("Curriculums").doc("2568");
+            let curRef69 = db.collection("Curriculums").doc("2569");
+            
+            batch.set(curRef67, { year: "2567", courses: BASE_COURSES });
+            batch.set(curRef68, { year: "2568", courses: BASE_COURSES }); // ตอนนี้ใช้ของ 67 ไปก่อน
+            batch.set(curRef69, { year: "2569", courses: BASE_COURSES }); // ตอนนี้ใช้ของ 67 ไปก่อน
+            
+            batch.commit().then(() => {
+                Swal.fire('สำเร็จ!', 'อัปโหลดรายวิชาเข้าฐานข้อมูลเรียบร้อยแล้ว!', 'success');
+            }).catch((error) => {
+                console.error("Error writing document: ", error);
+                Swal.fire('ข้อผิดพลาด', 'อัปโหลดไม่สำเร็จ', 'error');
+            });
+        }
+    });
+}
     </script>
 </body>
 </html>
